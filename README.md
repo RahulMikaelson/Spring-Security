@@ -8,6 +8,7 @@ This project integrates Spring Security into a Spring Boot application to enable
 - Implements `UserDetailsService` to load user credentials.
 - Uses `InMemoryUserDetailsManager` to store user details.
 - Supports basic authentication with username & password.
+- Passwords are securely stored using BCrypt hashing.
 - All API endpoints require authentication by default.
 
 ## Implementation Details
@@ -21,27 +22,32 @@ A custom security configuration class `SecurityConfig` is created to define auth
 @Configuration
 public class SecurityConfig {
     @Bean
-    public UserDetailsService userDetailsService() {
+    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
         UserDetails user = User.builder()
                 .username("root")
-                .password("{noop}secret") // Plaintext password for now
+                .password(passwordEncoder.encode("secret")) // Encrypted password using BCrypt
                 .roles("ADMIN", "USER")
                 .build();
         return new InMemoryUserDetailsManager(user);
     }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }
 ```
 - This method creates a user `root` with password `secret` and assigns roles `ADMIN` and `USER`.
-- `{noop}` is used for plaintext passwords (should be replaced with `BCryptPasswordEncoder`).
+- The password is now encrypted using `BCryptPasswordEncoder` before being stored.
 
 ### 3. Authentication Flow
 1. When a request is made to any API, Spring Security intercepts it.
 2. The user must provide a valid username and password.
 3. `InMemoryUserDetailsManager` loads the user details.
-4. If authentication is successful, access is granted; otherwise, the request is rejected.
+4. The entered password is compared against the hashed password.
+5. If authentication is successful, access is granted; otherwise, the request is rejected.
 
 ## Future Improvements
-- Replace `{noop}` with `BCryptPasswordEncoder` for better security.
 - Implement authorization rules to allow/deny access based on roles.
 - Store user details in a database instead of in-memory.
 
